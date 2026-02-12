@@ -30,12 +30,24 @@ add_library(obs-timer-plugin MODULE ${PLUGIN_SOURCES})
 
 # Настройка включаемых директорий
 if(OBS_INCLUDE_DIR)
-	target_include_directories(obs-timer-plugin PRIVATE ${OBS_INCLUDE_DIR})
+	target_include_directories(obs-timer-plugin PRIVATE 
+		${OBS_INCLUDE_DIR}
+		${CMAKE_PREFIX_PATH}/include
+	)
 endif()
 
 # Подключение библиотек OBS
 if(OS_WINDOWS)
-	if(OBS_LIB_DIR)
+	if(CMAKE_PREFIX_PATH)
+		# obs-deps содержит obs.lib в lib/ директории
+		find_library(OBS_LIB obs PATHS "${CMAKE_PREFIX_PATH}/lib" NO_DEFAULT_PATH)
+		if(OBS_LIB)
+			target_link_libraries(obs-timer-plugin ${OBS_LIB})
+			message(STATUS "Found OBS library: ${OBS_LIB}")
+		else()
+			message(WARNING "obs.lib not found in ${CMAKE_PREFIX_PATH}/lib")
+		endif()
+	elseif(OBS_LIB_DIR)
 		if(EXISTS "${OBS_LIB_DIR}/obs.lib")
 			target_link_libraries(obs-timer-plugin "${OBS_LIB_DIR}/obs.lib")
 		elseif(EXISTS "${OBS_LIB_DIR}/../lib/obs.lib")
