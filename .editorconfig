@@ -1,0 +1,54 @@
+# EditorConfig для поддержания единого стиля кода
+# https://editorconfig.org
+
+root = true
+
+# Настройки для всех файлов
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C/C++ файлы
+[*.{c,cpp,h,hpp}]
+indent_style = tab
+indent_size = 4
+tab_width = 4
+
+# CMake файлы
+[CMakeLists.txt]
+indent_style = space
+indent_size = 4
+
+[*.cmake]
+indent_style = space
+indent_size = 4
+
+# Markdown файлы
+[*.md]
+trim_trailing_whitespace = false
+indent_style = space
+indent_size = 2
+
+# JSON и конфигурационные файлы
+[*.{json,yml,yaml}]
+indent_style = space
+indent_size = 2
+
+# INI файлы (локализация)
+[*.ini]
+indent_style = space
+indent_size = 4
+
+# Batch скрипты
+[*.bat]
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+
+# Shell скрипты
+[*.sh]
+end_of_line = lf
+indent_style = space
+indent_size = 4
