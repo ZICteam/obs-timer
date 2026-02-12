@@ -22,7 +22,7 @@ jobs:
     - name: Clone OBS Studio (headers only)
       shell: pwsh
       run: |
-        Write-Host "Cloning OBS Studio for headers..."
+        Write-Host "Cloning OBS Studio..."
         git clone --depth 1 --branch 30.2.2 https://github.com/obsproject/obs-studio.git obs-studio
         
     - name: Download OBS Windows Dependencies
@@ -33,10 +33,10 @@ jobs:
         Invoke-WebRequest -Uri $url -OutFile "obs-deps.zip"
         Expand-Archive -Path "obs-deps.zip" -DestinationPath "obs-deps"
     
-    - name: Build OBS libobs
+    - name: Build minimal libobs (only library, no UI/plugins)
       shell: pwsh
       run: |
-        Write-Host "Building OBS libobs..."
+        Write-Host "Building minimal libobs for plugin linking..."
         cd obs-studio
         cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
           -DCMAKE_BUILD_TYPE=Release `
@@ -44,13 +44,16 @@ jobs:
           -DENABLE_PLUGINS=OFF `
           -DENABLE_UI=OFF `
           -DENABLE_SCRIPTING=OFF `
-          -DBUILD_BROWSER=OFF `
-          -DBUILD_TESTS=OFF
+          -DENABLE_BROWSER=OFF `
+          -DENABLE_WEBSOCKET=OFF `
+          -DBUILD_FOR_DISTRIBUTION=OFF
         cmake --build build --config Release --target obs
+        Write-Host "libobs built successfully!"
         
     - name: Configure Plugin
       shell: pwsh
       run: |
+        Write-Host "Configuring timer plugin..."
         cmake -S . -B build_plugin `
           -G "Visual Studio 17 2022" -A x64 `
           -DCMAKE_BUILD_TYPE=Release `
@@ -59,18 +62,50 @@ jobs:
           -DOBS_LIB_DIR="$PWD\obs-studio\build\libobs\Release"
     
     - name: Build Plugin
-      run: cmake --build build_plugin --config Release
+      shell: pwsh
+      run: |
+        Write-Host "Building timer plugin..."
+        cmake --build build_plugin --config Release
+        Write-Host "Plugin built: obs-timer-plugin.dll"
     
     - name: Package
       shell: pwsh
       run: |
+        Write-Host "Packaging plugin..."
         New-Item -ItemType Directory -Force -Path "release\obs-plugins\64bit"
         New-Item -ItemType Directory -Force -Path "release\data\obs-plugins\obs-timer-plugin\locale"
         
-        Copy-Item "build_plugin\Release\obs-timer-plugin.dll" -Destination "release\obs-plugins\64bit\" -ErrorAction SilentlyContinue
-        Copy-Item "data\locale\*.ini" -Destination "release\data\obs-plugins\obs-timer-plugin\locale\" -Recurse
+        # Копируем DLL плагина
+        Copy-Item "build_plugin\Release\obs-timer-plugin.dll" -Destination "release\obs-plugins\64bit\"
         
-        Compress-Archive -Path "release\*" -DestinationPath "obs-timer-plugin-windows.zip"
+        # Копируем локализацию
+        Copy-Item "data\locale\*.ini" -Destination "release\data\obs-plugins\obs-timer-plugin\locale\"
+        
+        # Создаём README для установки
+        @"
+# OBS Timer Plugin - Installation
+
+## Установка плагина:
+
+1. Закройте OBS Studio
+2. Скопируйте файлы:
+   - obs-plugins\64bit\obs-timer-plugin.dll → C:\Program Files\obs-studio\obs-plugins\64bit\
+   - data\obs-plugins\obs-timer-plugin\ → C:\Program Files\obs-studio\data\obs-plugins\
+
+3. Запустите OBS Studio
+4. Источники → ➕ → "Countdown Timer"
+
+## Использование:
+
+- Добавьте источник "Countdown Timer" в сцену
+- Настройте параметры в "Свойства"
+- Управляйте таймером через кнопки Start/Stop/Reset
+
+Готово! 🎉
+"@ | Out-File -FilePath "release\INSTALL.txt" -Encoding UTF8
+        
+        Compress-Archive -Path "release\*" -DestinationPath "obs-timer-plugin-windows.zip" -Force
+        Write-Host "Package created: obs-timer-plugin-windows.zip"
     
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
