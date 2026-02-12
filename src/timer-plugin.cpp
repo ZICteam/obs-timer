@@ -329,13 +329,13 @@ struct obs_source_info timer_source_info = {
 	.get_name = timer_get_name,
 	.create = timer_create,
 	.destroy = timer_destroy,
+	.get_width = timer_get_width,
+	.get_height = timer_get_height,
 	.get_defaults = timer_defaults,
 	.get_properties = timer_properties,
 	.update = timer_update,
 	.video_tick = timer_video_tick,
 	.video_render = timer_render,
-	.get_width = timer_get_width,
-	.get_height = timer_get_height,
 };
 
 // Инициализация модуля
