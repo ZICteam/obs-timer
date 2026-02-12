@@ -5,9 +5,20 @@ project(obs-timer-plugin VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Найти OBS Studio
-find_package(libobs REQUIRED)
-find_package(obs-frontend-api REQUIRED)
+# Определение платформы
+if(WIN32)
+	set(OS_WINDOWS TRUE)
+elseif(APPLE)
+	set(OS_MACOS TRUE)
+else()
+	set(OS_LINUX TRUE)
+endif()
+
+# Поиск OBS Studio (необязательно для упрощённой сборки)
+if(DEFINED ENV{OBS_SOURCE_DIR})
+	set(OBS_INCLUDE_DIR "$ENV{OBS_SOURCE_DIR}/libobs")
+	set(OBS_LIB_DIR "$ENV{OBS_SOURCE_DIR}/build/libobs/Release")
+endif()
 
 # Исходные файлы
 set(PLUGIN_SOURCES
@@ -17,11 +28,19 @@ set(PLUGIN_SOURCES
 # Создание модуля плагина
 add_library(obs-timer-plugin MODULE ${PLUGIN_SOURCES})
 
+# Настройка включаемых директорий
+if(OBS_INCLUDE_DIR)
+	target_include_directories(obs-timer-plugin PRIVATE ${OBS_INCLUDE_DIR})
+endif()
+
 # Подключение библиотек OBS
-target_link_libraries(obs-timer-plugin
-	OBS::libobs
-	OBS::obs-frontend-api
-)
+if(OS_WINDOWS)
+	if(OBS_LIB_DIR)
+		target_link_libraries(obs-timer-plugin "${OBS_LIB_DIR}/obs.lib")
+	endif()
+elseif(OS_LINUX)
+	target_link_libraries(obs-timer-plugin obs)
+endif()
 
 # Установка свойств
 set_target_properties(obs-timer-plugin PROPERTIES
